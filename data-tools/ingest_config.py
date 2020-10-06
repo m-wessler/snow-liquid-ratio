@@ -20,6 +20,16 @@
 obdir = '/uufs/chpc.utah.edu/common/home/steenburgh-group10/mewessler/observations/'
 
 file_info = {
+    'CLNX':{
+        'header':['DATE', 'SNOW', 'SWE', 'DEPTH24', 'SNOW24', 'SWE24'],
+        'rename':['datetime', 'snow12', 'swe12', 'depth24', 'snow24', 'swe24'],
+        'units':[None, 'in', 'in', 'in', 'in', 'in'],
+        'tzinfo':-7,
+        'tfmt':['%Y%m%d%H%M'],
+        'tfix':None,
+        'tshift':None,
+        'auto_site':'CLN',
+    },
     'ALTA':{
         'header':['LOCATION','DATE','PRCP','SNOW','SNWD','TMAX','TMIN','TOBS'],
         'rename':[None, 'date', 'swe24', 'snow24', 'depth24', 'tsfc_max', 'tsfc_min', 'tsfc'],

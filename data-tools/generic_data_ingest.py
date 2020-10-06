@@ -42,8 +42,8 @@ elif len(finfo['tfmt']) == 2:
                             if d.minute > 30 else d-timedelta(minutes=d.minute) for d in data_raw['datetime']]
     
 elif len(finfo['tfmt']) == 1:
-    pass
-    
+    data_raw['datetime'] = [datetime.strptime(str(t), finfo['tfmt'][0]) for t in data_raw['datetime']]
+
 # If we are going to attempt to assign tzinfo and parse ST vs DT, do it here and now
 # For now this is timezone-naive
 # Convert to UTC
@@ -58,7 +58,10 @@ in_mm = 25.4
 cm_mm = 10
 m_mm = 1000
 
-for k in data_raw.keys():    
+for k in data_raw.keys():
+    
+    data_raw[k] = data_raw[k].replace(-999, np.nan)
+    
     if k[-3:] == '_in':
         data_raw[k] *= in_mm
         data_raw = data_raw.rename(columns={k:k.replace('_in', '_mm')}).round(2)
@@ -74,7 +77,7 @@ for k in data_raw.keys():
         
 intervals = [k.split('_')[0].replace('snow', '') for k in data_raw.keys() if ('snow' in k)]
 for i in intervals:
-    data_raw.insert(0, 'slr'+i, data_raw['snow%s_mm'%i]/data_raw['swe%s_mm'%i])
+    data_raw.insert(0, 'slr'+i, np.round(data_raw['snow%s_mm'%i]/data_raw['swe%s_mm'%i], 0))
     data_raw['slr'+i][np.isinf(data_raw['slr'+i])] = np.nan
 
 # Ensure data is typecast properly
