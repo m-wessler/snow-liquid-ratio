@@ -77,7 +77,7 @@ for k in data_raw.keys():
         
 intervals = [k.split('_')[0].replace('snow', '') for k in data_raw.keys() if ('snow' in k)]
 for i in intervals:
-    data_raw.insert(0, 'slr'+i, np.round(data_raw['snow%s_mm'%i]/data_raw['swe%s_mm'%i], 0))
+    data_raw.insert(0, 'slr'+i, np.round(data_raw['snow%s_mm'%i]/data_raw['swe%s_mm'%i], 2))
     data_raw['slr'+i][np.isinf(data_raw['slr'+i])] = np.nan
 
 # Ensure data is typecast properly
