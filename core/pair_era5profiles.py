@@ -14,6 +14,8 @@ from datetime import datetime, timedelta
 from sklearn.metrics import r2_score
 from scipy.stats import gaussian_kde, skew
 
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 obdir = '/uufs/chpc.utah.edu/common/home/steenburgh-group10/mewessler/observations/'
@@ -39,7 +41,7 @@ era_dir = '/uufs/chpc.utah.edu/common/home/steenburgh-group10/mewessler/era5/'
 era5_orog_file = era_dir + 'era5_orog.nc'
 era5_orog = xr.open_dataset(era5_orog_file)['z'].isel(time=0)
 era5_orog = era5_orog.rename({'latitude':'lat', 'longitude':'lon'})
-era5_lat, era5_lon = era5_orog['lat'], era5_orog['lon']
+era5_lat, era5_lon = np.meshgrid(era5_orog['lat'], era5_orog['lon'])
 
 # Find the index of the correct lat lon
 idx1d = (np.abs(era5_lon - site_lon) + np.abs(era5_lat - site_lat))
@@ -151,7 +153,8 @@ for k in [k for k in obs if 'slr' in k]:
             n, x = np.histogram(yobs.dropna(), bins=np.arange(0, 50+1, 0.1))
             ax3.plot(x, np.cumsum(gaussian_kde(yobs.dropna())(x))/10, color=ycolors[colid[i]], linewidth=2, label=label)
         except:
-            raise
+            pass
+            #raise
         
         ax5.scatter(year, yobs.dropna().mean(), c='orange', **xyargs)
         ax5.scatter(year, yobs.dropna().median(), c='green', **xyargs)        
@@ -163,10 +166,14 @@ for k in [k for k in obs if 'slr' in k]:
     ax6.scatter(year, -1, c='purple', label='Standard Deviation', **xyargs)
     ax6.scatter(year, -1, c='blue', label='Skewness', **xyargs)
     
-    n, x = np.histogram(yobs, bins=np.arange(0, 50+1, 0.1))
-    ax2.plot(x, gaussian_kde(obs[k].dropna())(x), 'k--', linewidth=2, label='All')
-    n, x = np.histogram(yobs, bins=np.arange(0, 50+1, 0.1))
-    ax3.plot(x, np.cumsum(gaussian_kde(obs[k].dropna())(x))/10, 'k--', linewidth=2, label='All')
+    try:
+        n, x = np.histogram(yobs, bins=np.arange(0, 50+1, 0.1))
+        ax2.plot(x, gaussian_kde(obs[k].dropna())(x), 'k--', linewidth=2, label='All')
+        n, x = np.histogram(yobs, bins=np.arange(0, 50+1, 0.1))
+        ax3.plot(x, np.cumsum(gaussian_kde(obs[k].dropna())(x))/10, 'k--', linewidth=2, label='All')
+    except:
+        pass
+        #raise
     
     mobs = []
     for i, month in enumerate([10, 11, 12, 1, 2, 3, 4, 5]):
@@ -283,12 +290,12 @@ for level_set in ['', '10M', '100M']:
 
 resample_these = {
     'max':['Q', 'T', 'U', 'V', 'VO', 'W', 'Z', 'R', 'T2M', 'D2M', 'BLH', 'CAPE', 'MSL',
-           'SP', 'SPD', 'U10M', 'V10M', 'U100M', 'V100M', 'SPD10M', 'DIR10M', 'SPD100M', 'DIR100M'],
+           'SP', 'SPD', 'DIR', 'U10M', 'V10M', 'U100M', 'V100M', 'SPD10M', 'DIR10M', 'SPD100M', 'DIR100M'],
     
     'min':['Q', 'T', 'VO', 'Z', 'R', 'T2M', 'D2M', 'MSL', 'SP'],
     
     'mean':['Q', 'T', 'U', 'V', 'VO', 'W', 'Z', 'R', 'T2M', 'D2M', 'BLH', 'CAPE', 'MSL', 
-           'SP', 'SPD', 'U10M', 'V10M', 'U100M', 'V100M', 'SPD10M', 'DIR10M', 'SPD100M', 'DIR100M']}
+           'SP', 'SPD', 'DIR', 'U10M', 'V10M', 'U100M', 'V100M', 'SPD10M', 'DIR10M', 'SPD100M', 'DIR100M']}
 
 for interval in intervals:
     
@@ -297,7 +304,6 @@ for interval in intervals:
 
     era5_resampled = []
     
-    print(obs.index)
     for i, t in enumerate(obs.index):
 
         # Determine start, end

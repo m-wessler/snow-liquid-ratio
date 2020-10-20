@@ -27,10 +27,10 @@ use_scaler = RobustScaler(quantile_range=(25, 75))
 train_size, test_size, random_state = None, 0.33, 5
 
 svr_tune_on = 'r2'#['mse', 'mae', 'mare', 'r2']
-crange = np.arange(1, 100, 5)
-erange = np.arange(0.25, 3.1, .25)
+crange = np.arange(80, 120, 1)
+erange = np.arange(0, 2.1, .1)
 
-mp_cores = 64
+mp_cores = 128
 mp_method = 'fork'
 ##################
 
@@ -99,16 +99,17 @@ if __name__ == '__main__':
 
         df = pd.read_pickle(f)
 
-        exclude_keys = ['VO', 'Z', 'W'] #['Z', '2T', 'TSFC', 'CAPE', 'VO', 'W', 'V', 'U']
+        exclude_keys = ['Q'] #['Z', '2T', 'TSFC', 'CAPE', 'VO', 'W', 'V', 'U']
         exclude_keys = np.array([[k if ex in k[:len(ex)] else np.nan 
                                   for ex in exclude_keys] for k in df.keys()])
         exclude_keys = exclude_keys.flatten()
         exclude_keys = exclude_keys[exclude_keys != 'nan']
 
         keys = ['slr', 'swe_mm']
-
         keys.extend(np.hstack([[k for k in df.keys() if vt in k] for vt in use_var_type]))
-
+        
+        keys = [k for k in keys if k not in exclude_keys]
+        
         df = df.loc[:, keys].rename(columns={[k for k in keys if 'swe' in k][0]:'swe_mm'})
         df = df.loc[:, :].rename(columns={[k for k in keys if 'swe' in k][0]:'swe_mm'})
         df = df.rename(columns={[k for k in keys if 'slr' in k][0]:'slr'})
@@ -116,7 +117,7 @@ if __name__ == '__main__':
 
         # df.insert(0, 'site', np.full(df.index.size, fill_value=site, dtype='U10'))
         doy = [int(pd.to_datetime(d).strftime('%j')) for d in df.index]
-        df.insert(2, 'day_of_year', doy)
+        #df.insert(2, 'day_of_year', doy)
 
         data.append(df.reset_index().drop(columns='time'))
 
