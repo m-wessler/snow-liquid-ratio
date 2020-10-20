@@ -29,9 +29,8 @@ def generic_ingest(site):
     else:
         try:
             run_cmd = (python + ingest_script + ' %s'%site)
-            P = Popen(run_cmd, shell=True, stdout=PIPE, stderr=PIPE)
-            output, err = P.communicate()
-
+            call(shlex.split(run_cmd))
+            
         except:
             print('Ingest %s failed to run'%site)
 
@@ -60,22 +59,15 @@ def extract_profiles(site, metadata):
 
     print('\nSite: %s %.3f %.3f\n%s\n'%(site, site_lat, site_lon, era5_prof_file))
     
-    iter_count = 0
-    while not isfile(era5_path + '/profiles/' + era5_prof_file):
-        iter_count += 1
-        
+    # iter_count = 0
+    # while not isfile(era5_path + '/profiles/' + era5_prof_file):
+        # iter_count += 1
+    if not isfile(era5_path + '/profiles/' + era5_prof_file):
         for run_cmd in [
             python + era5_script_dir + 'extract_profile.py %.2f %.2f 1980 2020'%(lat, lon),
             python + era5_script_dir + 'aggregate_profile.py %.2f %.2f'%(lat, lon)]:
-        
-            P = Popen(shlex.split(run_cmd), shell=False, stdout=PIPE)
-        
-            while True:
-                output = P.stdout.readline()
-                if output == '' and process.poll() is not None:
-                    break
-                if output:
-                    print(output.strip())
+
+            call(shlex.split(run_cmd))
 
     print('%s Complete'%era5_prof_file)
     return None
@@ -88,10 +80,8 @@ def pair_profiles(site):
         
         run_cmd = python + script_dir + 'core/pair_era5profiles.py %s'%site
         print(run_cmd)
+        call(shlex.split(run_cmd))
         
-        P = Popen(run_cmd, shell=True, stdout=PIPE, stderr=PIPE)
-        output, err = P.communicate()
-
         paired_files = glob(obs_path + 'combined/%s_*.pd'%site)
         
     if len(paired_files) > 0:
@@ -121,17 +111,25 @@ if __name__ == '__main__':
         p.join()
 
     extract_profiles_mp = partial(extract_profiles, metadata=metadata)
+    
+    # Single
     [extract_profiles_mp(site) for site in site_list]
-#     with get_context(mp_method).Pool(n_workers) as p:
-#         p.map(extract_profiles_mp, site_list)
-#         p.close()
-#         p.join()
-        
-#     with get_context(mp_method).Pool(n_workers) as p:
-#         p.map(pair_profiles, site_list)
-#         p.close()
-#         p.join()
+    
+    # Multi
+    # with get_context(mp_method).Pool(n_workers) as p:
+    #    p.map(extract_profiles_mp, site_list)
+    #    p.close()
+    #    p.join()
+    
+    # Single
+    [pair_profiles(site) for site in site_list]
+    
+    # Multi
+    # with get_context(mp_method).Pool(n_workers) as p:
+    #    p.map(pair_profiles, site_list)
+    #    p.close()
+    #    p.join()
 
     # Extract GFS profiles here!
 
-#     print('Data Pre-Processing Completed...')
+    print('Data Pre-Processing Completed...')

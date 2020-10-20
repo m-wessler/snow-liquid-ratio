@@ -72,6 +72,7 @@ if __name__ == '__main__':
 
     obdir = '/uufs/chpc.utah.edu/common/home/steenburgh-group10/mewessler/observations/'
     figdir = '/uufs/chpc.utah.edu/common/home/steenburgh-group10/mewessler/output/slr_figures/'
+    outdir = '/uufs/chpc.utah.edu/common/home/steenburgh-group10/mewessler/output/slr_models/'
 
     flist = glob(obdir + 'combined/*.pd')
 
@@ -156,15 +157,15 @@ if __name__ == '__main__':
 
     print('\nTrain: {}\nTest: {}\nValidate: {}'.format(X_train.shape[0], X_test.shape[0], None))
 
-    train_stats = X_train.describe().T
-
+    train_stats = X_train.describe()
     scaler = use_scaler.fit(X_train)
 
     X_train_norm = pd.DataFrame(scaler.transform(X_train.loc[:, list(X_train.keys())]), columns=X_train.keys())
     X_test_norm = pd.DataFrame(scaler.transform(X_test.loc[:, list(X_train.keys())]), columns=X_train.keys())
 
     print('\nNormed Sample:')
-    print(X_train_norm.describe().T.head())
+    train_stats_norm = X_train_norm.describe()
+    print(train_stats_norm.T.head())
 
     params = {}
     params['r2'] = np.zeros((len(crange), len(erange)))
@@ -294,7 +295,19 @@ if __name__ == '__main__':
     os.makedirs(figpath, exist_ok=True)
     
     numfigs = len(glob(figpath + '*_gridsearch*.png'))
-    figfile = figpath + '%s_gridsearch%02d.png'%(train_name, numfigs)
+    figfile = figpath + '%s_gridsearch.%02d.png'%(train_name, numfigs)
 
     plt.savefig(figfile)
     print('Saved: ', figfile)
+    
+    outpath = outdir + '%s'%train_name
+    os.makedirs(outpath, exist_ok=True)
+    
+    for obj, obj_name in zip(
+        [scaler, [train_stats, train_stats_norm], model], 
+        ['scaler', 'train_stats', 'SLRmodel']):
+        
+        with open(outpath + '/%s_%s.%02d.pickle'%(
+            train_name, obj_name, numfigs), 'wb') as wfp:
+            
+            pickle.dump(obj, wfp)
