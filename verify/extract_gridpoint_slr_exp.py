@@ -21,14 +21,17 @@ use_era_scaler = False
 
 ####### CONFIG ####### CONFIG ####### CONFIG #######
 
-site, obs_interval = 'CLNX', 12
+# CLNX: 12/F021 24/F033
+
+site, obs_interval, fhr_end = 'CLNX', 12, 21
 site_lat, site_lon = 40.5763, -111.6383
+svr_model_config = 'all_dev'
 
 ####### CONFIG ####### CONFIG ####### CONFIG #######
 
 model = 'gfs0p25'
 archive = '/uufs/chpc.utah.edu/common/home/steenburgh-group10/mewessler/archive/'
-mlmodel_dir = '/uufs/chpc.utah.edu/common/home/steenburgh-group10/mewessler/output/slr_models/all_dev/'
+mlmodel_dir = '/uufs/chpc.utah.edu/common/home/steenburgh-group10/mewessler/output/slr_models/%s/'%svr_model_config
 
 date_fmt = '%Y%m%d'
 datetime_fmt = '%Y%m%d%H'
@@ -87,9 +90,11 @@ def ingest_gfs(f, grid_index):
 def process_slr(valid, interval, grid_index):
     
     init = valid - timedelta(hours=interval)
-        
-    f0, f1, fi = 24-interval+3, 24, 3
-    fhrs = ['f%03d'%i for i in np.arange(f0, f1+1, fi)]
+    
+    fhr_int = 3
+    fhr_start = fhr_end - interval + fhr_int
+    
+    fhrs = ['f%03d'%i for i in np.arange(fhr_start, fhr_end+1, fhr_int)]
 
     flist = glob(archive + init.strftime(date_fmt) + 
                  '/models/%s/*%s*.grib2'%(model, init.strftime(datetime_fmt)))[1:]
@@ -101,6 +106,7 @@ def process_slr(valid, interval, grid_index):
         returns = np.array(returns, dtype=object)
         sfc, iso = returns[:, 0], returns[:, 1]
     except:
+        #raise 
         #print('%s v %s failed'%(init, valid))
         return None #[valid, np.nan, np.nan, np.nan]
     
@@ -194,6 +200,7 @@ def process_slr(valid, interval, grid_index):
 
         df = reduce(lambda left, right: pd.merge(left, right, on=['time', 'latitude', 'longitude']), df)
         df = df.rename(columns={'SWE_MM':'swe_mm'})
+        swe = df['swe_mm']
 
         scaler_file = glob(mlmodel_dir + '*scaler*')[-1]
         stats_file = glob(mlmodel_dir + '*train_stats*')[-1]
@@ -223,7 +230,6 @@ def process_slr(valid, interval, grid_index):
 
         slr = xr.where(slr < 0, 0, slr)
 
-        swe = df['swe_mm']
         snow = swe * slr
 
         try:
@@ -249,7 +255,7 @@ if __name__ == '__main__':
     idx1d = (np.abs(gfs_lon - site_lon) + np.abs(gfs_lat - site_lat))
     idx1d = np.where(idx1d == np.min(idx1d))
 
-    start, end = datetime(2015, 1, 15, 0), datetime(2020, 6, 1, 0)
+    start, end = datetime(2015, 1, 15, 0), datetime(2019, 6, 1, 0)
     valid_times = pd.date_range(start, end, freq='12H')
      
     mp_use_cores = (mp_use_cores 

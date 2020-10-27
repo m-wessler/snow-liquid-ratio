@@ -1,4 +1,4 @@
-import os
+import os, pickle
 import sklearn
 import numpy as np
 import pandas as pd
@@ -27,10 +27,10 @@ use_scaler = RobustScaler(quantile_range=(25, 75))
 train_size, test_size, random_state = None, 0.33, 5
 
 svr_tune_on = 'r2'#['mse', 'mae', 'mare', 'r2']
-crange = np.arange(80, 120, 1)
-erange = np.arange(0, 2.1, .1)
+crange = np.arange(1, 151, 5)
+erange = np.arange(0, 5.1, .25)
 
-mp_cores = 128
+mp_cores = 86
 mp_method = 'fork'
 ##################
 
@@ -78,6 +78,7 @@ if __name__ == '__main__':
 
     # This can be a manual site list if desired
     site_list = np.unique([f.split('/')[-1].split('_')[0] for f in flist])
+    # site_list = ['CLNX']
     print('Training on:\n%s\n'%'\n'.join(site_list))
 
     # favor = 'long' #'long'
@@ -134,6 +135,8 @@ if __name__ == '__main__':
     data = data[data['slr'] <= max_slr]
     data = data[data['T_01agl'] <= max_T_01agl]
     data = data[data['swe_mm'] >= min_swe_mm]
+    
+    data = data.drop(columns='swe_mm')
 
     # int(slr) for stratification (> 1 ct per class label)
     data = data.dropna()
