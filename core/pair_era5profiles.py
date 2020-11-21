@@ -227,7 +227,7 @@ gfs_levels = [200, 250, 300, 350, 400, 450, 500, 550, 600, 650,
 
 era5_prof = era5_prof.sel(level=gfs_levels)
 
-trim_elev = metadata['elevation_m']
+trim_elev = era5_elev#metadata['elevation_m']
 use_min = False
 
 # If we want to use the GFS elevation we can import it here
@@ -266,6 +266,8 @@ era5_prof = era5_prof.sel(level=slice(era5_prof.level.min(), lowest_level))
 num_levels = 10
 
 era5_prof = era5_prof.sel(level=sorted(era5_prof.level[num_levels*-1:])[::-1])
+
+print(era5_prof.level)
 era5_prof['level'] = np.arange(num_levels) + 1
 
 # ### Take care of the derived variables

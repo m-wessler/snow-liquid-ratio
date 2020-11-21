@@ -17,18 +17,18 @@ import warnings
 warnings.filterwarnings('ignore')
 
 ##################
-train_name = 'all_dev'
+train_name = 'clnx'
 use_intervals = [12, 24]
 use_var_type = ['mean']#, 'max', 'min']
 min_slr, max_slr = 2.5, 30
 max_T_01agl = 0 + 273.15
 min_swe_mm = 2.54
-use_scaler = RobustScaler(quantile_range=(25, 75))
+use_scaler = StandardScaler() #RobustScaler(quantile_range=(25, 75))
 train_size, test_size, random_state = None, 0.33, 5
 
 svr_tune_on = 'r2'#['mse', 'mae', 'mare', 'r2']
-crange = np.arange(1, 151, 5)
-erange = np.arange(0, 5.1, .25)
+crange = np.arange(5, 121, 5)
+erange = np.arange(0, 5.1, .5)
 
 mp_cores = 86
 mp_method = 'fork'
@@ -78,7 +78,10 @@ if __name__ == '__main__':
 
     # This can be a manual site list if desired
     site_list = np.unique([f.split('/')[-1].split('_')[0] for f in flist])
-    # site_list = ['CLNX']
+    
+    #site_list = [s for s in site_list if 'BSNF' not in s]
+    site_list = ['CLNX']
+    
     print('Training on:\n%s\n'%'\n'.join(site_list))
 
     # favor = 'long' #'long'
@@ -100,17 +103,12 @@ if __name__ == '__main__':
         interval = int(f.split('/')[-1].split('.')[-2].replace('h', ''))
 
         df = pd.read_pickle(f)
-
-        exclude_keys = ['Q'] #['Z', '2T', 'TSFC', 'CAPE', 'VO', 'W', 'V', 'U']
-        exclude_keys = np.array([[k if ex in k[:len(ex)] else np.nan 
-                                  for ex in exclude_keys] for k in df.keys()])
-        exclude_keys = exclude_keys.flatten()
-        exclude_keys = exclude_keys[exclude_keys != 'nan']
-
-        keys = ['slr', 'swe_mm']
-        keys.extend(np.hstack([[k for k in df.keys() if vt in k] for vt in use_var_type]))
         
-        keys = [k for k in keys if k not in exclude_keys]
+        include_keys = ['T', 'U', 'V']#, 'R', 'Z']
+        keys = ['slr', 'swe_mm']
+        keys.extend(np.hstack([[k for k in df.keys()
+                                if ((vt in k) & (k.split('_')[0] in include_keys))] 
+                               for vt in use_var_type]))
         
         df = df.loc[:, keys].rename(columns={[k for k in keys if 'swe' in k][0]:'swe_mm'})
         df = df.loc[:, :].rename(columns={[k for k in keys if 'swe' in k][0]:'swe_mm'})
