@@ -20,14 +20,14 @@ warnings.filterwarnings('ignore')
 
 ##################
 train_name = 'all'
-site_list_fix = None #'CLNX']#, 'AGD', 'ALTA', 'BCC', 'SLB', 'PVC']
-include_keys = ['T', 'U', 'V', 'R', 'Z']#, 'SPD', 'DIR'] #VO, W
+site_list_fix = ['CLNX']#, 'BSNFJE', 'BSNFDC', 'BSNFEX'] #PVC
+include_keys = ['T', 'R', 'Z', 'U', 'V']#
 
-use_intervals = [12, 24]
+use_intervals = [12]#, 24]
 use_var_type = ['mean']#, 'max', 'min']
 
 min_slr, max_slr = 0, 50
-max_T_01agl = 0 + 273.15
+max_T_650 = 0 + 273.15
 min_swe_mm = 2.54
 
 use_scaler = StandardScaler() #RobustScaler(quantile_range=(25, 75))
@@ -101,13 +101,13 @@ if __name__ == '__main__':
             flist.append(glob(obdir + 'combined/%s*%d*.pd'%(site, interval)))
 
     flist = np.hstack(flist)
+    flist = [f for f in flist if '.isobaric.' in f]
     print('Source files:\n%s\n'%'\n'.join(flist))
 
     data = []
     for f in flist:
 
         site = f.split('/')[-1].split('_')[0]
-        interval = int(f.split('/')[-1].split('.')[-2].replace('h', ''))
 
         df = pd.read_pickle(f)
         
@@ -137,14 +137,14 @@ if __name__ == '__main__':
 
     data = data[data['slr'] >= min_slr]
     data = data[data['slr'] <= max_slr]
-    data = data[data['T_01agl'] <= max_T_01agl]
+    data = data[data['T_650'] <= max_T_650]
     data = data[data['swe_mm'] >= min_swe_mm]
     
     data = data.drop(columns='swe_mm')
-
+    
     # int(slr) for stratification (> 1 ct per class label)
     data = data.dropna()
-    fac = 5
+    fac = 10
     slr = np.round(data['slr']/fac, 0)*fac
     print('\nTrain/Test Split Strata:') 
     print(slr.value_counts())
