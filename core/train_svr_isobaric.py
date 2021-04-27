@@ -20,10 +20,10 @@ warnings.filterwarnings('ignore')
 
 ##################
 train_name = 'all'
-site_list_fix = ['CLNX']#, 'BSNFJE', 'BSNFDC', 'BSNFEX'] #PVC
-include_keys = ['T', 'R', 'Z', 'U', 'V']#
+site_list_fix = ['CLNX', 'ALTA', 'AGD', 'BCC', 'SLB', 'PVC', 'BSNFJE', 'BSNFEX', 'BSFDC']
+include_keys = ['T', 'R', 'SPD']# 'R', 'Z', 'U', 'V']
 
-use_intervals = [12]#, 24]
+use_intervals = [24]
 use_var_type = ['mean']#, 'max', 'min']
 
 min_slr, max_slr = 0, 50
@@ -142,19 +142,25 @@ if __name__ == '__main__':
     
     data = data.drop(columns='swe_mm')
     
+#     data['swe_mm'] = np.log(data['swe_mm'])
+#     data['slr'] = np.log(data['slr'])
+    
     # int(slr) for stratification (> 1 ct per class label)
+    
+    data = data.replace([np.inf, -np.inf], np.nan)
     data = data.dropna()
-    fac = 10
-    slr = np.round(data['slr']/fac, 0)*fac
-    print('\nTrain/Test Split Strata:') 
-    print(slr.value_counts())
+    
+#     fac = 10
+#     slr = np.round(data['slr']/fac, 0)*fac
+#     print('\nTrain/Test Split Strata:') 
+#     print(slr.value_counts())
 
     print('\nTotal: %d'%len(data))
 
     # Split into train/test sets
     X_train, X_test = train_test_split(data, 
                                            test_size=test_size, train_size=train_size, 
-                                           random_state=random_state, stratify=slr)
+                                           random_state=random_state)#, stratify=slr)
 
     # Perform a secondary split if separate validation set required
 
@@ -169,7 +175,7 @@ if __name__ == '__main__':
 
     X_train_norm = pd.DataFrame(scaler.transform(X_train.loc[:, list(X_train.keys())]), columns=X_train.keys())
     X_test_norm = pd.DataFrame(scaler.transform(X_test.loc[:, list(X_train.keys())]), columns=X_train.keys())
-
+    
     print('\nNormed Sample:')
     train_stats_norm = X_train_norm.describe()
     print(train_stats_norm.T.head())
@@ -217,7 +223,7 @@ if __name__ == '__main__':
     min_on, indexer, _ = 'MAE', np.where(params['mae'] == params['mae'].min()), params['mae'].min()
     min_on, indexer, _ = 'MSE', np.where(params['mse'] == params['mse'].min()), params['mse'].min()
     min_on, indexer, _ = 'MARE', np.where(params['mare'] == params['mare'].min()), params['mare'].min()
-
+    
     for min_on in [svr_tune_on]:
 
         if min_on in ['mse', 'mae', 'mare']:
@@ -232,11 +238,13 @@ if __name__ == '__main__':
         r, c, _
 
         model = params['model'][r, c]
-        test_predictions = model.predict(X_test_norm)
-
-        y_true = y_test
-        y_pred = test_predictions
-        print('MARE ', MARE(y_true, y_pred))
+        y_pred = model.predict(X_test_norm)
+        #print('MARE ', MARE(y_test, y_pred))
+        
+#         y_train = np.exp(y_train)
+#         y_test = np.exp(y_test)
+#         y_pred = np.exp(y_pred)
+#         params['mae'] = np.exp(params['mae'])
 
         fig, axs = plt.subplots(2, 3, facecolor='w', figsize=(24, 14))
         axs = axs.flatten()
@@ -277,11 +285,11 @@ if __name__ == '__main__':
         ax.grid()
 
         ax = axs[4]
-        maxslr = test_predictions.max() if test_predictions.max() > y_test.max() else y_test.max()
+        maxslr = y_pred.max() if y_pred.max() > y_test.max() else y_test.max()
         maxslr += 5
-        ax.scatter(y_test, test_predictions, c='k', s=50, marker='+', linewidth=0.75)
-        ax.set_xlabel('Observed SLR')
-        ax.set_ylabel('Predicted SLR')
+        ax.scatter(y_pred, y_test, c='k', s=50, marker='+', linewidth=0.75)
+        ax.set_ylabel('Observed SLR')
+        ax.set_xlabel('Predicted SLR')
         ax.plot([0, maxslr], [0, maxslr])
         ax.set_xlim([0, maxslr])
         ax.set_ylim([0, maxslr])
@@ -289,7 +297,7 @@ if __name__ == '__main__':
         ax.grid()
 
         ax = axs[5]
-        error = test_predictions - y_test
+        error = y_pred - y_test
         ax.hist(error, bins=np.arange(-30, 30, 2), edgecolor='k')
         ax.set_xlabel('Prediction Error')
         ax.set_ylabel('Count')

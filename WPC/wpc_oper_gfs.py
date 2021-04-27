@@ -30,6 +30,8 @@ except:
     init = datetime(init.year, init.month, init.day, init_hour)
 
 archive_dir = '/uufs/chpc.utah.edu/common/home/horel-group/archive/'
+# archive_dir = '/uufs/chpc.utah.edu/common/home/u1070830/mewessler/archive/'
+
 output_dir = '/uufs/chpc.utah.edu/common/home/steenburgh-group10/mewessler/wpc/oper/%s/%s/'%(model, init.strftime('%Y%m%d%H'))
 data_dir = archive_dir  + '%s/models/%s/%s/'%(init.strftime('%Y%m%d'), model, init.strftime('%Y%m%d%H'))
 os.makedirs(output_dir, exist_ok=True)
@@ -163,6 +165,8 @@ if __name__ == '__main__':
         [os.remove(f) for f in old_files]
         
     file_list = glob(data_dir + '*.nc')
+    
+    print(data_dir, file_list)
 
     data = xr.open_mfdataset(file_list)[['slr', 'dqpf', 'dqsf']]
     data['fhr'] = (data.time - data.time[0]).astype(int)/3.6e12
